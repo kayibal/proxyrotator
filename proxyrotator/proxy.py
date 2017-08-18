@@ -25,20 +25,20 @@ class _Proxy():
                           "This might lead to failures. Try increasing" \
                           "number of proxies."
     def __init__(self, proxy_ip: str,
-                 min_idle_time: float=5.0,
+                 min_idle_time: float=300.0,
                  fail_on_idle_disrespect: bool=True):
         """Initialize Proxy
 
         :param proxy_ip: str
             the proxies ip adress
         :param min_idle_time: float
-            minimum time this proxy should be idle
+            minimum time this proxy should be idle in seconds
         :param fail_on_idle_disrespect: bool
             if set to true the proxy will raise an
             exception if used too early.
         """
         self.proxy = proxy_ip
-        self.min_idle_time = min_idle_time
+        self.min_idle_time = min_idle_time*1e6
         self.fail_on_idle_disrespect = fail_on_idle_disrespect
         self.times_used = 0
         self.last_used = dt.datetime.today() - dt.timedelta(days=1)
@@ -53,7 +53,17 @@ class _Proxy():
 
     @property
     def idle_time(self):
+        if self.times_used < 1:
+            return dt.timedelta.max
         return dt.datetime.now() - self.last_used
+
+    @property
+    def _idle_microseconds(self):
+        return self.idle_time.total_seconds()
+
+    @property
+    def _idle_time_norm(self):
+        return self.min_idle_time / self._idle_microseconds
 
     @property
     def avg_response_time(self):
@@ -66,19 +76,17 @@ class _Proxy():
 
     def __lt__(self, other):
         if self.active:
-            if self.idle_time > dt.timedelta(minutes=self.min_idle_time) \
-                    and other.idle_time > dt.timedelta(minutes=other.min_idle_time):
+            if self._idle_microseconds > self.min_idle_time \
+                    and other._idle_microseconds > other.min_idle_time:
                 return self.avg_response_time < other.avg_response_time
-
-            return self.idle_time < other.idle_time
+            return self._idle_time_norm < other._idle_time_norm
         else:
             return False
 
     def __enter__(self):
-        log = logging.get_(__name__)
+        log = logging.getLogger(__name__)
         self._start = time.time()
-        self.times_used += 1
-        if self.min_idle_time < self.idle_time.seconds/60:
+        if self.min_idle_time > self._idle_microseconds:
             msg = self.idle_disrispect_msg.format(str(self))
             if self.fail_on_idle_disrespect:
                 raise KeyError(msg)
@@ -90,6 +98,8 @@ class _Proxy():
     def __exit__(self, *args):
         self.last_used = dt.datetime.now()
         self.response_times.append(time.time() - self._start)
+        self.times_used += 1
 
     def __repr__(self):
-        return "[{} {} ~{}s]".format(self.proxy, self.last_used, self.avg_response_time)
+        return "[{} {}|{}min ~{}s]".format(self.proxy, self.idle_time,
+                                           self.min_idle_time/1e6, self.avg_response_time)

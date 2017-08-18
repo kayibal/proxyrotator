@@ -43,7 +43,7 @@ def get_config():
     cfg.style = "pep440"
     cfg.tag_prefix = "v"
     cfg.parentdir_prefix = "None"
-    cfg.versionfile_source = "proxy-rotator/_version.py"
+    cfg.versionfile_source = "proxyrotator/_version.py"
     cfg.verbose = False
     return cfg
 

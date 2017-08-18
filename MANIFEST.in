@@ -1,2 +1,2 @@
 include versioneer.py
-include proxy-rotator/_version.py
+include proxyrotator/_version.py

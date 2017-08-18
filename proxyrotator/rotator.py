@@ -13,7 +13,7 @@ class ProxyRotator():
         heapq.heapify(self.proxies)
 
     def get(self, *args, **kwargs):
-        log = logging.get(__name__)
+        log = logging.getLogger(__name__)
         res = None
         self._lock.acquire()
         try:
@@ -26,11 +26,14 @@ class ProxyRotator():
                 log.info('Using proxy {}'.format(proxy_adr))
 
                 r = requests.get(*args, **kwargs)
-                if r is None or not r.ok:
+                # TODO too broad dead url might deactivate ok proxy
+                if r is None or 400 <= r.status_code <= 500:
                     prxy.deactivate()
+            #TODO evaluate exception class
             except requests.exceptions.RequestException as e:
                 log.warning(str(e))
                 prxy.deactivate()
+        # dont put proxy back if it was deactivated
         if prxy.active:
             self._lock.acquire()
             try:
