@@ -38,7 +38,7 @@ class _Proxy():
             exception if used too early.
         """
         self.proxy = proxy_ip
-        self.min_idle_time = min_idle_time*1e6
+        self.min_idle_time = min_idle_time * 1e6
         self.fail_on_idle_disrespect = fail_on_idle_disrespect
         self.times_used = 0
         self.last_used = dt.datetime.today() - dt.timedelta(days=1)
@@ -59,7 +59,7 @@ class _Proxy():
 
     @property
     def _idle_microseconds(self):
-        return self.idle_time.total_seconds()
+        return self.idle_time.total_seconds() * 1e6
 
     @property
     def _idle_time_norm(self):
@@ -81,7 +81,7 @@ class _Proxy():
                 return self.avg_response_time < other.avg_response_time
             return self._idle_time_norm < other._idle_time_norm
         else:
-            return False
+            return True
 
     def __enter__(self):
         log = logging.getLogger(__name__)

@@ -50,8 +50,8 @@ def test_less_than_idle_time():
 
     assert long_idle < too_recently_used
     assert longer_idle < long_idle
-    assert dead > too_recently_used
-    assert dead > too_recently_used
+    assert dead < too_recently_used
+    assert dead < too_recently_used
 
 
 

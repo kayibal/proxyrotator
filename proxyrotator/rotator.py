@@ -1,5 +1,6 @@
 import logging
 import threading
+import datetime as dt
 import heapq
 import requests
 
@@ -8,16 +9,27 @@ from .proxy import _Proxy
 class ProxyRotator():
     _lock = threading.Lock()
 
-    def __init__(self, proxies):
-        self.proxies = [_Proxy(p) for p in proxies]
+    def __init__(self, proxies,
+                 min_idle_time: float = 300.0,
+                 fail_on_idle_disrespect: bool = True):
+        self.proxies = [_Proxy(p, min_idle_time, fail_on_idle_disrespect)
+                        for p in proxies]
         heapq.heapify(self.proxies)
+        self._last_heapify = dt.datetime.now()
+        self.refresh_interval = min_idle_time * 1e3
+
+    @property
+    def _heapify_time(self):
+        return (self._last_heapify - dt.datetime.now()).total_seconds() * 1e6
 
     def get(self, *args, **kwargs):
         log = logging.getLogger(__name__)
         res = None
         self._lock.acquire()
+        if self._heapify_time < self.refresh_interval:
+            heapq.heapify(self.proxies)
         try:
-            prxy = self.proxies.pop()
+            prxy = heapq.heappop(self.proxies)
         finally:
             self._lock.release()
         with prxy as proxy_adr:

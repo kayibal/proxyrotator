@@ -1,3 +1,5 @@
+import heapq
+
 import pytest
 import requests
 import time
@@ -25,25 +27,36 @@ def test_proxy_rotator(monkeypatch):
         res = requests.Response()
         res.status_code = 200
         if proxy_adr in slow_proxies:
-            time.sleep(0.1)
-            return res
+            time.sleep(0.01)
         elif proxy_adr in ok_proxies:
-            time.sleep(0.05)
-            return res
+            time.sleep(0.005)
         elif proxy_adr in fast_proxies:
             time.sleep(0.001)
-            return res
         elif proxy_adr in error_proxies:
-            if no < 80:
+            if no < 90:
                 res.status_code = 429
-                return res
-            elif no < 90:
+            else:
                 raise requests.exceptions.ConnectTimeout()
+        return res
 
     monkeypatch.setattr(requests, 'get', mocked_get)
 
-    rot = ProxyRotator(proxies)
+    rot = ProxyRotator(proxies, 1)
 
+    results = []
+    errors = []
     for i in range(100):
-        print(i)
         res = rot.get('http://some_url/test.html')
+        if res:
+            results.append(res)
+        else:
+            errors.append(res)
+
+    time.sleep(1)
+    # rot.proxies = sorted(rot.proxies)
+    assert set([heapq.heappop(rot.proxies).proxy for _ in range(20)]) \
+        == fast_proxies
+    assert set([heapq.heappop(rot.proxies).proxy for _ in range(30)]) \
+           == ok_proxies
+    assert set([heapq.heappop(rot.proxies).proxy for _ in range(20)]) \
+           == slow_proxies
