@@ -11,8 +11,9 @@ from proxyrotator.proxy import _Proxy
 
 def proxies(mean_idle_time=0.05, size=100):
     return [_Proxy('no_{}'.format(i),
-                   min_idle_time=normalvariate(mean_idle_time, mean_idle_time/2))
+                   min_idle_time=normalvariate(mean_idle_time, mean_idle_time / 2))
             for i in range(size)]
+
 
 def test_proxy_rotator(monkeypatch):
     proxies = ['no_{0:02d}'.format(i) for i in range(100)]
@@ -54,9 +55,10 @@ def test_proxy_rotator(monkeypatch):
 
     time.sleep(1)
     # rot.proxies = sorted(rot.proxies)
+    heapq.heapify(rot.proxies)
     assert set([heapq.heappop(rot.proxies).proxy for _ in range(20)]) \
         == fast_proxies
     assert set([heapq.heappop(rot.proxies).proxy for _ in range(30)]) \
-           == ok_proxies
+        == ok_proxies
     assert set([heapq.heappop(rot.proxies).proxy for _ in range(20)]) \
-           == slow_proxies
+        == slow_proxies

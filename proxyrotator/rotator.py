@@ -22,6 +22,7 @@ class ProxyRotator():
     def _heapify_time(self):
         return (self._last_heapify - dt.datetime.now()).total_seconds() * 1e6
 
+
     def get(self, *args, **kwargs):
         log = logging.getLogger(__name__)
         res = None
